@@ -512,96 +512,70 @@
         }
     }
     
-    // Função para exportar para Word
-    function exportToDoc() {
-        try {
-            // Verificar se docx está carregado
-            if (typeof docx === 'undefined') {
-                alert('Biblioteca Word não carregada. Aguarde um momento e tente novamente.');
-                return;
-            }
-            
-            // Preparar dados
-            if (!currentData || currentData.length === 0) {
-                alert('Nenhum dado para exportar!');
-                return;
-            }
-            
-            // Criar linhas da tabela
-            const rows = [];
-            
-            // Cabeçalho
-            rows.push(
-                new docx.TableRow({
-                    cells: [
-                        new docx.TableCell({ children: [new docx.Paragraph({ text: 'Ano', bold: true })] }),
-                        new docx.TableCell({ children: [new docx.Paragraph({ text: 'Empresa / CNPJ', bold: true })] }),
-                        new docx.TableCell({ children: [new docx.Paragraph({ text: 'Função', bold: true })] }),
-                        new docx.TableCell({ children: [new docx.Paragraph({ text: 'Nome', bold: true })] }),
-                        new docx.TableCell({ children: [new docx.Paragraph({ text: 'Local', bold: true })] })
-                    ]
-                })
-            );
-            
-            // Dados
-            currentData.forEach(item => {
-                rows.push(
-                    new docx.TableRow({
-                        cells: [
-                            new docx.TableCell({ children: [new docx.Paragraph({ text: String(item.Ano || '') })] }),
-                            new docx.TableCell({ children: [new docx.Paragraph({ text: String(item.Empresa || '') })] }),
-                            new docx.TableCell({ children: [new docx.Paragraph({ text: String(item.Função || '') })] }),
-                            new docx.TableCell({ children: [new docx.Paragraph({ text: String(item.Nome || '') })] }),
-                            new docx.TableCell({ children: [new docx.Paragraph({ text: String(item.Local || '') })] })
-                        ]
-                    })
-                );
-            });
-            
-            // Criar documento
-            const doc = new docx.Document({
-                sections: [{
+    document.getElementById('exportDocBtn').addEventListener('click', function () {
+    // 1. Verificar se a biblioteca 'docx' foi carregada corretamente
+    if (typeof docx === 'undefined') {
+        alert('A biblioteca do Word ainda está carregando. Por favor, aguarde alguns segundos e tente novamente.');
+        return;
+    }
+
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType } = docx;
+
+    // 2. Criar o cabeçalho da tabela no arquivo Word
+    const tableRows = [
+        new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Ano", bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Empresa / CNPJ", bold: true })] })], width: { size: 30, type: WidthType.PERCENTAGE } }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Função / Atividade", bold: true })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nome Completo", bold: true })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Local de Prestação", bold: true })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+            ],
+        }),
+    ];
+
+    // 3. Preencher a tabela com os dados filtrados/atuais (currentData)
+    currentData.forEach(item => {
+        tableRows.push(
+            new TableRow({
+                children: [
+                    new TableCell({ children: [new Paragraph(String(item.Ano || ''))] }),
+                    new TableCell({ children: [new Paragraph(String(item.Empresa || ''))] }),
+                    new TableCell({ children: [new Paragraph(String(item.Função || ''))] }),
+                    new TableCell({ children: [new Paragraph(String(item.Nome || ''))] }),
+                    new TableCell({ children: [new Paragraph(String(item.Local || ''))] }),
+                ],
+            })
+        );
+    });
+
+    // 4. Montar o documento
+    const doc = new Document({
+        sections: [{
+            properties: {},
+            children: [
+                new Paragraph({
                     children: [
-                        new docx.Paragraph({
-                            text: 'Painel de Terceirizados - Prefeitura de Vazante',
-                            heading: docx.HeadingLevel.HEADING_1,
-                            bold: true,
-                            spacing: { after: 200 }
-                        }),
-                        new docx.Paragraph({
-                            text: 'Data de Exportação: ' + new Date().toLocaleDateString('pt-BR'),
-                            spacing: { after: 400 }
-                        }),
-                        new docx.Table({
-                            rows: rows,
-                            width: { size: 100, type: docx.WidthType.PERCENTAGE }
-                        })
-                    ]
-                }]
-            });
-            
-            // Gerar nome do arquivo com data
-            const dataAtual = new Date();
-            const nomeArquivo = 'Painel_Terceirizados_' + 
-                dataAtual.getFullYear() + '-' +
-                String(dataAtual.getMonth() + 1).padStart(2, '0') + '-' +
-                String(dataAtual.getDate()).padStart(2, '0') + '.docx';
-            
-            // Salvar arquivo
-            docx.Packer.toBlob(doc).then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = nomeArquivo;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-                alert('Documento Word exportado com sucesso!');
-            });
-        } catch (error) {
-            console.error('Erro ao exportar Word:', error);
-            alert('Erro ao exportar Word: ' + error.message);
+                        new TextRun({ text: "Painel de Terceirizados - Prefeitura de Vazante", bold: true, size: 28 }),
+                    ],
+                    space: { after: 300 },
+                }),
+                new Table({
+                    rows: tableRows,
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                }),
+            ],
+        }],
+    });
+
+    // 5. Gerar e baixar o arquivo .docx
+    Packer.toBlob(doc).then(blob => {
+        saveAs(blob, "relatorio_terceirizados.docx");
+    }).catch(err => {
+        console.error("Erro ao gerar Word:", err);
+        alert("Ocorreu um erro ao gerar o arquivo Word.");
+    });
+});
         }
     }
     
